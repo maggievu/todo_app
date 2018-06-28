@@ -139,7 +139,7 @@
 
                 });
 
-                $('.button-delete').click(function() {
+                $('.button-delete').unbind().click(function() {
                     if (confirm('Are you sure to delete this task?')) {
                         $(this).parent().fadeOut(function() {
                             let id = $(this).attr('id');
