@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="utf-8">
+    <title>The awesome TODO list</title>
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.13/css/all.css" integrity="sha384-DNOHZ68U8hZfKXOrtjWvjxusGo9WQnrNx2sqG0tfsghAvtVlRW3tvkXWZh58N9jp" crossorigin="anonymous">
+
+    <style>
+        body {
+            max-width: 800px;
+            margin: auto;
+        }
+
+        #create {
+            border-radius: 1rem;
+            border: 3px solid chocolate;
+            padding: 1rem;
+
+            display: flex;
+            align-items: center;
+        }
+
+        #name {
+            margin: 0 1rem;
+            flex-grow: 1;
+        }
+
+        .tasks {
+            border-radius: 1rem;
+            border: 3px solid chocolate;
+            padding: 1rem;
+        }
+
+        h1, h2 {
+            color: chocolate;
+        }
+
+        ul {
+            padding: 0;
+        }
+
+        li {
+            margin: .5rem 0 .5rem .5rem;
+            padding-left: 0.5rem;
+            list-style: none;
+
+            display: flex;
+            align-items: center;
+        }
+
+        li:hover {
+            background-color: floralwhite;
+        }
+
+        li em {
+            flex-grow: 1;
+        }
+
+    </style>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/5.0.4/firebase.js"></script>
+    <script>
+        // Initialize Firebase
+        var config = {
+            apiKey: "AIzaSyDYr1Gksjqmmo1ZHS1jTlyGDpbbokzRNTs",
+            authDomain: "todolist-maggie.firebaseapp.com",
+            databaseURL: "https://todolist-maggie.firebaseio.com",
+            projectId: "todolist-maggie",
+            storageBucket: "todolist-maggie.appspot.com",
+            messagingSenderId: "728721599846"
+        };
+        firebase.initializeApp(config);
+    </script>
+
+    <script>
+
+        $(function() {
+
+            $('#name').focus();
+
+            const tasksRef = firebase.database().ref('/tasks');
+
+            $('#create').submit(function(event) {
+                event.preventDefault();
+
+                let taskname = $('#name').val();
+                tasksRef.push({ task: taskname, status: "incomplete" });
+
+                $('#name').val('').focus();
+            }); // ---------------------------------- end of form_submit function
+
+
+            function update(snap) {
+                const taskId = snap.key;
+                const taskObj = snap.val();
+
+                let taskname = taskObj.task;
+                let status = taskObj.status;
+
+
+                if (status === "incomplete") {
+                    let decorator = `
+                    <li id=${taskId}>
+                    <strong>${taskname}</strong> ${'&nbsp'} <em class="small">(Added on ${new Date().toUTCString()})</em>
+                    <button class="btn btn-success button-complete">Mark Complete</button>
+                    <button class="btn btn-danger btn-xs button-delete">x</button>
+                    </li>
+                    `;
+                    $('#pending').prepend(decorator);
+
+                } else {
+                    decorator = `
+                    <li id=${taskId}>
+                    <strong>${taskname}</strong> ${'&nbsp'} <em class="small">(Added on ${new Date().toUTCString()})</em>
+                    <button class="btn btn-warning button-incomplete">Mark Incomplete</button>
+                    <button class="btn btn-danger btn-xs button-delete">x</button>
+                    </li>
+                    `;
+                    $('#complete').prepend(decorator);
+                }
+
+                $('.button-complete').click(function() {
+                    $(this).parent().fadeOut(function() {
+                        let id = $(this).attr('id');
+                        firebase.database().ref(`tasks/${id}`).update({'status': 'complete'});
+                    });
+
+                });
+
+                $('.button-incomplete').click(function() {
+                    $(this).parent().fadeOut(function() {
+                        let id = $(this).attr('id');
+                        firebase.database().ref(`tasks/${id}`).update({'status': 'incomplete'});
+                    });
+
+                });
+
+                $('.button-delete').click(function() {
+                    if (confirm('Are you sure to delete this task?')) {
+                        $(this).parent().fadeOut(function() {
+                            let id = $(this).attr('id');
+                            firebase.database().ref(`tasks/${id}`).remove();
+                        });
+                    } else {
+                        console.log('No task is deleted');
+                    }
+
+                });
+
+            }; // ---------------------------------- end of main update function
+
+
+            tasksRef.on('child_added', update);
+            //whenever a child is added, callback function update
+
+            tasksRef.on('child_changed', update);
+            //whenever a child is changed, callback function update
+
+
+
+            //Make it draggable (but unable to capture the event and make an update to the database)
+            $(function() {
+                $('#pending, #complete').sortable({
+                    connectWith: ".connected"
+                }).disableSeclection();
+
+            });
+
+
+        }); // ---------------------------------- end of document-ready function
+
+
+    </script>
+</head>
+<body>
+
+    <h1><span class="far fa-list-alt"></span> My Todo List</h1>
+    <hr>
+    <form id='create' class="form-group">
+        <label for="name"><strong>Task:</strong></label>
+        <input id="name" class="form-control" type="text">
+        <input type="submit" value="Create Task" class="btn btn-primary">
+    </form>
+
+    <hr>
+
+    <div class="tasks">
+        <h2>Pending Tasks</h2>
+        <hr>
+
+        <ul id="pending" class="connected">
+
+        </ul>
+    </div>
+
+    <hr>
+
+    <div class="tasks">
+        <h2>Completed Tasks</h2>
+        <hr>
+
+        <ul id="complete" class="connected">
+
+        </ul>
+    </div>
+
+</body>
+</html>
